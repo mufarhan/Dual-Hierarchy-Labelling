@@ -1,4 +1,4 @@
-# Stable Tree Labelling
+# Dual-Hierarchy Labelling (DHL)
 
 A tool to speed up distance queries for dynamic road networks, 
 It consists of the following main files:
