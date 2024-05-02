@@ -30,9 +30,10 @@ int main(int argc, char** argv)
     double read_index_time = util::stop_timer();
     cout << "read index in " << read_index_time << "s (" << con_index.size() / MB << " MB)" << " " << ch.size() / MB << " MB)" << endl;
 
+    vector<pair<pair<distance_t,distance_t>, NodeID> > contracted_updates;
     vector<pair<pair<distance_t, distance_t>, pair<NodeID, NodeID> > > updates;
-    fs.open(argv[3]); NodeID a, b; distance_t weight;
-    while(fs >> a >> b >> weight) {
+    ifs.open(argv[3]); NodeID a, b; distance_t weight;
+    while(ifs >> a >> b >> weight) {
 
         distance_t new_weight;
         if(argv[4][0] == 'd')
@@ -40,9 +41,20 @@ int main(int argc, char** argv)
         else if(argv[4][0] == 'i')
             new_weight = weight * 1.5;
 
+        g.update_edge(a, b, new_weight);
+        g.update_edge(b, a, new_weight);
+
+        ContractionLabel x = con_index.get_contraction_label(a), y = con_index.get_contraction_label(b);
+        if (con_index.is_contracted(a) || con_index.is_contracted(b)) {
+            if (x.distance_offset > y.distance_offset)
+                contracted_updates.push_back(make_pair(make_pair(x.distance_offset, y.distance_offset + new_weight), a));
+            else if(x.distance_offset < y.distance_offset)
+                contracted_updates.push_back(make_pair(make_pair(y.distance_offset, x.distance_offset + new_weight), b));
+            continue;
+        }
         updates.push_back(make_pair(make_pair(weight, new_weight), make_pair(a, b)));
     }
-    fs.close();
+    ifs.close();
 
     util::start_timer();
     if(argv[4][0] == 'd') {
