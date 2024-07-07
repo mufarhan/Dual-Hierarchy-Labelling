@@ -2889,7 +2889,7 @@ void Graph::contract_seq(ContractionIndex &ci, vector<pair<pair<distance_t,dista
     }
 }
 
-#ifdef MULTI_THREAD
+#ifdef MULTI_THREAD_DISTANCES
 void Graph::DhclDec_Par(ContractionHierarchy &ch, ContractionIndex &ci, vector<pair<pair<distance_t, distance_t>, pair<NodeID, NodeID> > >& updates) {
 
     vector<thread> threads;
