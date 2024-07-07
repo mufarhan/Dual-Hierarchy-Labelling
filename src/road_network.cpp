@@ -2733,7 +2733,7 @@ void Graph::IncCH(ContractionHierarchy &ch, vector<pair<pair<distance_t, distanc
         Neighbor& x = UpNeighbor(ch, a, b);
         if(x.distance == iter.first.first) {
             C.push_back(make_pair(x.distance, make_pair(a, b)));
-            q.push(DCHSearchNode(ch.nodes[a].dist_index, a, b, x.distance)); //as++;
+            q.push(DCHSearchNode(ch.nodes[a].dist_index, a, b, x.distance));
         }
     }
 
@@ -2774,7 +2774,7 @@ void Graph::IncCH(ContractionHierarchy &ch, vector<pair<pair<distance_t, distanc
                     Neighbor& y = UpNeighbor(ch, a, b);
                     if(y.distance == new_dist) {
                         C.push_back(make_pair(y.distance, make_pair(a, b)));
-                        q.push(DCHSearchNode(ch.nodes[a].dist_index, a, b, y.distance)); //as++;
+                        q.push(DCHSearchNode(ch.nodes[a].dist_index, a, b, y.distance));
                     }
                 }
             }
