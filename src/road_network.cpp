@@ -2724,57 +2724,61 @@ Neighbor& Graph::UpNeighbor(ContractionHierarchy &ch, NodeID v, NodeID w) {
 
 void Graph::IncCH(ContractionHierarchy &ch, vector<pair<pair<distance_t, distance_t>, pair<NodeID, NodeID> > >& updates, vector<pair<distance_t, pair<NodeID, NodeID> > > &C) {
 
-    priority_queue<DCHSearchNode> q; NodeID a, b;
+    priority_queue<DCHSearchNode> q; NodeID a, b; 
     for(pair<pair<distance_t, distance_t>, pair<NodeID, NodeID> > iter: updates) {
 
         a = iter.second.first, b = iter.second.second;
         if(ch.nodes[a].dist_index < ch.nodes[b].dist_index) swap(a, b);
 
-	Neighbor &x = UpNeighbor(ch, a, b);
+        Neighbor& x = UpNeighbor(ch, a, b);
         if(x.distance == iter.first.first) {
             C.push_back(make_pair(x.distance, make_pair(a, b)));
-            q.push(DCHSearchNode(ch.nodes[a].dist_index, a, b, x.distance));
+            q.push(DCHSearchNode(ch.nodes[a].dist_index, a, b, x.distance)); //as++;
         }
     }
 
     while(!q.empty()) {
         DCHSearchNode next = q.top(); q.pop();
 
-        for(Neighbor &n: ch.nodes[next.v].up_neighbors) {
-            if(n.node != next.w) {
-                distance_t new_dist = next.distance + n.distance;
-
-                a = next.w, b = n.node;
-                if(ch.nodes[a].dist_index < ch.nodes[b].dist_index) swap(a, b);
-	        Neighbor &x = UpNeighbor(ch, a, b);
-                if(x.distance == new_dist) {
-                    C.push_back(make_pair(x.distance, make_pair(a, b)));
-                    q.push(DCHSearchNode(ch.nodes[a].dist_index, a, b, x.distance));
-                }
+        // recompute shortcut distance
+        distance_t new_dist = infinity;
+        for (Neighbor &n : node_data[next.v].neighbors) {
+            if (n.node == next.w) {
+                new_dist = n.distance;
+                break;
             }
         }
 
-	// recompute shortcut distance
-	Neighbor &x = UpNeighbor(ch, next.v, next.w);
-	x.distance = infinity;
-	for (Neighbor &n : node_data[next.v].neighbors) {
-            if (n.node == next.w) {
-	        x.distance = n.distance;
-		break;
-            }
-	}
-
-	size_t i = 0, j = 0;
-	std::sort(ch.nodes[next.v].down_neighbors.begin(), ch.nodes[next.v].down_neighbors.end());
-	std::sort(ch.nodes[next.w].down_neighbors.begin(), ch.nodes[next.w].down_neighbors.end());
+        size_t i = 0, j = 0;
+        std::sort(ch.nodes[next.v].down_neighbors.begin(), ch.nodes[next.v].down_neighbors.end());
+        std::sort(ch.nodes[next.w].down_neighbors.begin(), ch.nodes[next.w].down_neighbors.end());
         while (i < ch.nodes[next.v].down_neighbors.size() && j < ch.nodes[next.w].down_neighbors.size()) {
             a = ch.nodes[next.v].down_neighbors[i]; b = ch.nodes[next.w].down_neighbors[j];
             if (a < b) i++;
             else if (b < a) j++;
             else {
-                x.distance = min(x.distance, UpNeighbor(ch, a, next.v).distance + UpNeighbor(ch, a, next.w).distance);
+                new_dist = min(new_dist, UpNeighbor(ch, a, next.v).distance + UpNeighbor(ch, a, next.w).distance);
                 i++; j++;
             }
+        }
+
+        Neighbor& x = UpNeighbor(ch, next.v, next.w);
+        if(new_dist != x.distance) {
+
+            for(Neighbor &n: ch.nodes[next.v].up_neighbors) {
+                if(n.node != next.w) {
+                    distance_t new_dist = next.distance + n.distance;
+
+                    a = next.w, b = n.node;
+                    if(ch.nodes[a].dist_index < ch.nodes[b].dist_index) swap(a, b);
+                    Neighbor& y = UpNeighbor(ch, a, b);
+                    if(y.distance == new_dist) {
+                        C.push_back(make_pair(y.distance, make_pair(a, b)));
+                        q.push(DCHSearchNode(ch.nodes[a].dist_index, a, b, y.distance)); //as++;
+                    }
+                }
+            }
+            x.distance = new_dist;
         }
     }
 }
@@ -2886,29 +2890,30 @@ void Graph::contract_seq(ContractionIndex &ci, vector<pair<pair<distance_t,dista
 }
 
 #ifdef MULTI_THREAD
-void Graph::DhlDec_Par(ContractionHierarchy &ch, ContractionIndex &ci, vector<pair<pair<distance_t, distance_t>, pair<NodeID, NodeID> > >& updates) {
+void Graph::DhclDec_Par(ContractionHierarchy &ch, ContractionIndex &ci, vector<pair<pair<distance_t, distance_t>, pair<NodeID, NodeID> > >& updates) {
 
     vector<thread> threads;
-    auto dhcldec = [this](ContractionHierarchy &ch, ContractionIndex& ci, util::TSBucketQueue<ICHSearchNode>& que) {
+    auto dhcldec = [this](ContractionHierarchy &ch, ContractionIndex& ci, util::TSBucketQueue<NodeID>& que) {
 
-        util::min_bucket_queue<ICHSearchNode> bq;
-        vector<ICHSearchNode> bucket; size_t label_index;
+        util::min_bucket_queue<NodeID> bq;
+        vector<NodeID> bucket; size_t label_index;
         while (que.next_bucket(bucket, label_index))
         {
-            for (ICHSearchNode obj : bucket)
-                bq.push(ICHSearchNode(obj.v, obj.w), ch.nodes[obj.v].dist_index);
+            for (NodeID node : bucket)
+                bq.push(node, label_index);
 
             // update distances involving descendants
             while(!bq.empty()) {
-                ICHSearchNode next = bq.pop();
+                NodeID next = bq.pop();
 
-                distance_t d = ci.get_contraction_label(next.v).cut_index.distances()[next.w];
-                for(NodeID node: ch.nodes[next.v].down_neighbors) {
+                distance_t d = ci.get_contraction_label(next).cut_index.distances()[label_index];
+                for(NodeID node: ch.nodes[next].down_neighbors) {
                     FlatCutIndex nn = ci.get_contraction_label(node).cut_index;
-                    distance_t new_dist = nn.distances()[ch.nodes[next.v].dist_index] + d;
-                    if(new_dist < nn.distances()[next.w]) {
-                        nn.distances()[next.w] = new_dist;
-                        bq.push(ICHSearchNode(node, next.w), ch.nodes[node].dist_index);
+                    distance_t new_dist = UpNeighbor(ch, node, next).distance + d;
+
+                    if(new_dist < nn.distances()[label_index]) {
+                        nn.distances()[label_index] = new_dist;
+                        bq.push(node, label_index);
                     }
                 }
             }
@@ -2919,16 +2924,17 @@ void Graph::DhlDec_Par(ContractionHierarchy &ch, ContractionIndex &ci, vector<pa
     DecCH(ch, updates, C);
 
     //update distances involving ancestors
-    util::TSBucketQueue<ICHSearchNode> grouping;
+    util::TSBucketQueue<NodeID> grouping;
     for(pair<distance_t, pair<NodeID, NodeID> > iter: C) {
         FlatCutIndex a = ci.get_contraction_label(iter.second.first).cut_index;
         if(iter.first < a.distances()[ch.nodes[iter.second.second].dist_index]) {
 
             FlatCutIndex b = ci.get_contraction_label(iter.second.second).cut_index;
             for(uint16_t anc = 0; anc <= ch.nodes[iter.second.second].dist_index; anc++) {
-                if(iter.first + b.distances()[anc] < a.distances()[anc]) {
-                    a.distances()[anc] = iter.first + b.distances()[anc];
-                    grouping.push(ICHSearchNode(iter.second.first, anc), ch.nodes[iter.second.first].dist_index);
+                distance_t new_dist = iter.first + b.distances()[anc];
+                if(new_dist < a.distances()[anc]) {
+                    a.distances()[anc] = new_dist;
+                    grouping.push(iter.second.first, anc);
                 }
             }
         }
@@ -2943,35 +2949,37 @@ void Graph::DhlDec_Par(ContractionHierarchy &ch, ContractionIndex &ci, vector<pa
 void Graph::DhlInc_Par(ContractionHierarchy &ch, ContractionIndex &ci, vector<pair<pair<distance_t, distance_t>, pair<NodeID, NodeID> > >& updates) {
 
     vector<thread> threads;
-    auto dhclinc = [this](ContractionHierarchy &ch, ContractionIndex& ci, util::TSBucketQueue<ICHSearchNode>& que) {
+    auto dhclinc = [this](ContractionHierarchy &ch, ContractionIndex& ci, util::TSBucketQueue<NodeID>& que) {
 
-        util::min_bucket_queue<ICHSearchNode> bq;
-        vector<ICHSearchNode> bucket; size_t label_index;
+        util::min_bucket_queue<NodeID> bq;
+        vector<NodeID> bucket; size_t label_index;
         while (que.next_bucket(bucket, label_index))
         {
             // move items to bucket queue
-            for (ICHSearchNode next : bucket)
-                bq.push(ICHSearchNode(next.v, next.w), ch.nodes[next.v].dist_index);
+            for (NodeID node: bucket)
+                bq.push(node, label_index);
 
             // identify distances to descendants for update
             while(!bq.empty()) {
-                ICHSearchNode next = bq.pop();
+                NodeID next = bq.pop();
 
                 distance_t new_dist = infinity; // new distance from v to anc
-                for(Neighbor &n: ch.nodes[next.v].up_neighbors) {
-                    if(ch.nodes[n.node].dist_index >= next.w)
-                        new_dist = min(new_dist, n.distance + ci.get_contraction_label(n.node).cut_index.distances()[next.w]);
+                for(Neighbor &n: ch.nodes[next].up_neighbors) {
+                    if(ch.nodes[n.node].dist_index >= label_index)
+                        new_dist = min(new_dist, n.distance + ci.get_contraction_label(n.node).cut_index.distances()[label_index]);
                 }
 
                 // distance may not have changed after all
-                FlatCutIndex cv = ci.get_contraction_label(next.v).cut_index;
-                if(new_dist > cv.distances()[next.w]) {
-                    for(NodeID node: ch.nodes[next.v].down_neighbors) {
+                FlatCutIndex cv = ci.get_contraction_label(next).cut_index;
+                if(new_dist > cv.distances()[label_index]) {
+                    for(NodeID node: ch.nodes[next].down_neighbors) {
                         FlatCutIndex nn = ci.get_contraction_label(node).cut_index;
-                        if(nn.distances()[ch.nodes[next.v].dist_index] + cv.distances()[next.w] == nn.distances()[next.w])
-                            bq.push(ICHSearchNode(node, next.w), ch.nodes[node].dist_index);
+                        distance_t dist = UpNeighbor(ch, node, next).distance + cv.distances()[label_index];
+
+                        if(dist == nn.distances()[label_index])
+                            bq.push(node, label_index);
                     }
-                    cv.distances()[next.w] = new_dist;
+                    cv.distances()[label_index] = new_dist;
                 }
             }
         }
@@ -2981,15 +2989,16 @@ void Graph::DhlInc_Par(ContractionHierarchy &ch, ContractionIndex &ci, vector<pa
     IncCH(ch, updates, C);
 
     //update distances involving ancestors
-    util::TSBucketQueue<ICHSearchNode> grouping;
+    util::TSBucketQueue<NodeID> grouping;
     for(pair<distance_t, pair<NodeID, NodeID> > iter: C) {
         FlatCutIndex a = ci.get_contraction_label(iter.second.first).cut_index;
         if(iter.first == a.distances()[ch.nodes[iter.second.second].dist_index]) {
 
             FlatCutIndex b = ci.get_contraction_label(iter.second.second).cut_index;
             for(uint16_t anc = 0; anc <= ch.nodes[iter.second.second].dist_index; anc++) {
-                if(iter.first + b.distances()[anc] == a.distances()[anc])
-                    grouping.push(ICHSearchNode(iter.second.first, anc), ch.nodes[iter.second.first].dist_index);
+                distance_t dist = iter.first + b.distances()[anc];
+                if(dist == a.distances()[anc])
+                    grouping.push(iter.second.first, anc);
             }
         }
     }
