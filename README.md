@@ -30,4 +30,4 @@ To update index:
 
     $ ./index graph_file_name index_file_name update_file_name update_type(d - for decrease/i - for increase)
 
-`Sample/` folder provides a sample road network, a sample file containing query pairs and a sample file containing update pairs
+`Sample/` folder provides a sample graph, a sample file containing query pairs and a sample file containing update pairs
