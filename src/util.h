@@ -3,9 +3,7 @@
 #include <vector>
 #include <algorithm>
 #include <ostream>
-
 #include "road_network.h"
-
 
 namespace util {
 
