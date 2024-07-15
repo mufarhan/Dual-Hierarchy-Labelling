@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <ostream>
 
+#include "road_network.h"
+
+
 namespace util {
 
 // start new time measurement
@@ -27,6 +30,25 @@ void make_set(std::vector<T> &v)
             std::swap(v[next], v[last_distinct]);
         }
     v.resize(last_distinct + 1);
+}
+
+template<typename T, class Compare>
+void make_set(std::vector<T> &v, Compare comp)
+{
+    size_t v_size = v.size();
+    if (v_size < 2)
+        return;
+    std::sort(v.begin(), v.end(), comp);
+    size_t last_distinct = 0;
+    for (size_t next = 1; next < v_size; next++)
+        if (v[next].node != v[last_distinct].node)
+        {
+            last_distinct++;
+            road_network::Neighbor temp = v[next];
+            v[next] = v[last_distinct];
+            v[last_distinct] = temp;
+        }
+    v.erase(v.begin() + (last_distinct + 1), v.end());
 }
 
 // remove elements in set from v
@@ -122,6 +144,52 @@ public:
         while (min_bucket < buckets.size() && buckets[min_bucket].empty())
             min_bucket++;
         return top;
+    }
+};
+
+// thread-safe queue of buckets
+template <typename T>
+class TSBucketQueue {
+private:
+    // underlying data structure
+    std::vector<std::vector<T> > buckets;
+    // minimum non-empty bucket
+    size_t min_bucket;
+    // mutex for thread synchronization
+    std::mutex m_mutex;
+
+    bool empty() const
+    {
+        return min_bucket >= buckets.size();
+    }
+public:
+    // pushes an element to a given bucket in the queue (NOT thread-safe)
+    void push(T item, size_t bucket)
+    {
+        //std::lock_guard<std::mutex> lock(m_mutex);
+        if (empty() || min_bucket > bucket)
+            min_bucket = bucket;
+        if (buckets.size() <= bucket)
+            buckets.resize(bucket + 1);
+        buckets[bucket].push_back(item);
+    }
+    // pops next non-empty bucket off the queue, along with its bucket number; returns whether successful (thread-safe)
+    bool next_bucket(std::vector<T>& items, size_t &bucket)
+    {
+        // restrict mutex lock to critical block (delay copy)
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (empty())
+                return false;
+            bucket = min_bucket++;
+            // skip empty buckets
+            while (min_bucket < buckets.size() && buckets[min_bucket].empty())
+                min_bucket++;
+        }
+        // copy bucket content
+        items = buckets[bucket];
+        buckets[bucket].clear();
+        return true;
     }
 };
 

@@ -17,7 +17,7 @@ int main(int argc, char** argv)
     fstream ifs(argv[1]);
     Graph g;
     read_graph(g, ifs);
-    fs.close();
+    ifs.close();
 
     // read index
     util::start_timer();
