@@ -14,7 +14,7 @@ Additional files are:
 
 # Usage
 
-To Compile the source in `src/`
+To compile the source in `src/`
 
     $ make
 
