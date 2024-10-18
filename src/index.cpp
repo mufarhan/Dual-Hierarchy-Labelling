@@ -22,6 +22,8 @@ int main(int argc, char** argv)
     // construct index
     vector<CutIndex> ci;
     g.create_cut_index(ci, 0.2);
+    g.reset();
+    
     ContractionHierarchy ch;
     g.create_contraction_hierarchy(ch, ci, closest);
     ContractionIndex con_index(ci, closest);
