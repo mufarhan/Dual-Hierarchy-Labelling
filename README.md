@@ -24,10 +24,10 @@ To construct index:
 
 To query index:
 
-    $ ./index index_file_name query_file_name
+    $ ./query index_file_name query_file_name
 
 To update index:
 
-    $ ./index graph_file_name index_file_name update_file_name update_type(d - for decrease/i - for increase)
+    $ ./update graph_file_name index_file_name update_file_name update_type(d - for decrease/i - for increase)
 
 `Sample/` folder provides a sample graph, a sample file containing query pairs and a sample file containing update pairs
