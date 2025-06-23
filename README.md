@@ -34,4 +34,4 @@ To update index:
 
 # References
 
-* Muhammad Farhan, Henning Koehler, and Qing Wang, **[Dual-Hierarchy Labelling: Scaling Up Distance Queries on Dynamic Road Networks]([https://arxiv.org/pdf/1812.02363.pdf](https://dl.acm.org/doi/pdf/10.1145/3709685))**. SIGMOD 2025.
+* Muhammad Farhan, Henning Koehler, and Qing Wang, **[Dual-Hierarchy Labelling: Scaling Up Distance Queries on Dynamic Road Networks]([https://dl.acm.org/doi/pdf/10.1145/3709685])**. SIGMOD 2025.
