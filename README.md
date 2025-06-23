@@ -31,3 +31,7 @@ To update index:
     $ ./update graph_file_name index_file_name update_file_name update_type(d - for decrease/i - for increase)
 
 `Sample/` folder provides a sample graph, a sample file containing query pairs and a sample file containing update pairs
+
+# References
+
+* Muhammad Farhan, Henning Koehler, and Qing Wang, **[Dual-Hierarchy Labelling: Scaling Up Distance Queries on Dynamic Road Networks]([https://arxiv.org/pdf/1812.02363.pdf](https://dl.acm.org/doi/pdf/10.1145/3709685))**. SIGMOD 2025.
