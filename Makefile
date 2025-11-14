@@ -9,7 +9,7 @@ index:
 query:
 	$(CC) query src/query.cpp $(INC)
 update:
-	$(CC) topcut src/update.cpp $(INC)
+	$(CC) update src/update.cpp $(INC)
 
 clean:
 	rm index query update
