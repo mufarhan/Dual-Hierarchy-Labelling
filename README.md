@@ -32,6 +32,10 @@ To update index:
 
 `Sample/` folder provides a sample graph, a sample file containing query pairs and a sample file containing update pairs
 
+# Datasets
+
+ Real road networks used in this paper can be found at http://www.diag.uniroma1.it/~challenge9/download.shtml.
+
 # References
 
 * Muhammad Farhan, Henning Koehler, and Qing Wang, **[Dual-Hierarchy Labelling: Scaling Up Distance Queries on Dynamic Road Networks](https://dl.acm.org/doi/pdf/10.1145/3709685)**. SIGMOD 2025.
